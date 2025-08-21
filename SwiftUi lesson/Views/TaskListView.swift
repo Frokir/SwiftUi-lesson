@@ -9,54 +9,42 @@ import SwiftUI
 
 struct TaskListView: View {
     @StateObject private var viewModel = TaskViewModel()
-    @State private var newTaskTitle: String = ""
+    @State private var showEditor = false
     @State private var taskToEdit: TaskItem?
     
     var body: some View {
         NavigationStack {
-            VStack {
-                // Поле для ввода + кнопка
-                HStack {
-                    TextField("Новая задача", text: $newTaskTitle)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    Button(action: {
-                        viewModel.addTask(title: newTaskTitle)
-                        newTaskTitle = ""
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.green)
+            List {
+                ForEach(viewModel.tasks) { task in
+                    TaskRowView(task: task) {
+                        viewModel.toggleCompletion(for: task)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        taskToEdit = task
+                        showEditor = true
                     }
                 }
-                .padding()
-                
-                // Список задач
-                List {
-                    ForEach(viewModel.tasks) { task in
-                        TaskRowView(task: task) {
-                            viewModel.toggleTaskCompletion(task)
-                            
-                        }
-                        .onTapGesture {
-                            taskToEdit = task
-                        }
-                    }
-                    
-
-                    .onDelete(perform: viewModel.deleteTask)
-                }
-                .sheet(item: $taskToEdit) { task in
-                    EditTaskView(viewModel: viewModel, task: task)
-                }
-                .scrollContentBackground(.hidden)
-                .background(Color(.systemBackground))
+                .onDelete(perform: viewModel.deleteTask)
             }
             .navigationTitle("Мои задачи")
-            
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        taskToEdit = nil
+                        showEditor = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showEditor) {
+                TaskEditorView(viewModel: viewModel, task: taskToEdit)
+            }
         }
     }
 }
+
 #Preview {
     TaskListView()
 }
